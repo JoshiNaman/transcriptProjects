@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Deepgram Workshop</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700');
+      body { background: #141E29; color: white; font-family: 'Cairo', sans-serif; padding: 1em; }
+      img { width: 100%; }
+      p { font-size: 1.25em; line-height: 1.5;color: aliceblue; }
+    </style>
+  </head>
+  <body>
+    <p id="real"></p>
+    <p id="demo"></p>
+    <script>
+      const DG_ENDPOINT = 'wss://api.deepgram.com/v1/listen'
+      
+      navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+      
+      const socket = new WebSocket(DG_ENDPOINT, 
+      ['token', 'd1d580de3dba048f9dcd817e686a2a74ed4f5d72'])
+      
+      socket.onopen = () => {
+        mediaRecorder.addEventListener('dataavailable', event => {
+          socket.send(event.data)
+        })
+        mediaRecorder.start(250)
+      }
+      
+      socket.onmessage = message => {
+        const data = JSON.parse(message.data)
+        const is_final = data.is_final
+        const transcript = data.channel.alternatives[0].transcript
+        if(transcript && is_final)
+          {
+            console.log(transcript)
+            document.querySelector("#demo").innerHTML = document.querySelector("#demo").textContent + ' ' + transcript
+          }
+
+        if(transcript.localeCompare("wipe it down")==0)
+        document.querySelector("#demo").innerHTML = " "
+
+        if (transcript.localeCompare("tell me the time") == 0)
+        {
+            var today = new Date();
+            var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+            document.querySelector("#demo").innerHTML = "time " + time
+        }
+              
+      }
+        
+        
+      })
+    </script>
+  </body>
+</html>
